@@ -55,6 +55,9 @@
     }
     h1 { font-size: 3.2rem; color: var(--accent); margin-bottom: 14px; letter-spacing:2px;
          text-shadow: 0 0 14px rgba(0,255,213,0.18), 0 0 6px rgba(106,0,255,0.06); }
+    /* Logo image (replaces h1 title) */
+    #logo { height: 360px; width: auto; display: block; margin: 0 auto 20px;
+            filter: drop-shadow(0 8px 20px rgba(0,255,213,0.12)); -webkit-user-drag: none; }
     h2 { font-size: 2rem; color: #e6f7f0; margin-bottom: 12px; }
     p { font-size: 1rem; color: rgba(230,247,240,0.9); margin-bottom: 14px; line-height: 1.4; }
     button {
@@ -85,7 +88,7 @@
   <!-- Menus -->
   <div id="mainMenu" class="overlay">
     <div class="content">
-      <h1>Rogar's Pong Game</h1>
+      <img id="logo" src="logoR'SPG.png" alt="Rogar's Pong Game" />
       <p><strong>Multi :</strong> W/S (gauche) | ↑↓ (droite)<br>
       <strong>Solo :</strong> W/S vs Rogar IA<br>
       Premier à <strong>11 points</strong> gagne !</p>
