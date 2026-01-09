@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Rogar's Pong Game</title>
+  <style>
+    :root{
+      --bg-1: #020317;
+      --bg-2: #07102a;
+      --accent: #00ffd5;
+      --accent-2: #6a00ff;
+      --panel: rgba(255,255,255,0.04);
+      --glass-border: rgba(0,255,213,0.12);
+      --muted: rgba(255,255,255,0.6);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      background: radial-gradient(1200px 600px at 10% 20%, rgba(106,0,255,0.08), transparent 8%),
+                  radial-gradient(800px 400px at 90% 80%, rgba(0,255,213,0.03), transparent 8%),
+                  linear-gradient(180deg,var(--bg-1),var(--bg-2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      overflow: hidden;
+      color: var(--muted);
+    }
+    /* subtle moving scanlines */
+    body::before {
+      content:''; position:fixed; inset:0; pointer-events:none;
+      background: repeating-linear-gradient(180deg, rgba(255,255,255,0.01) 0 1px, transparent 1px 4px);
+      mix-blend-mode: overlay; opacity:0.6;
+    }
+    .game-container { position: relative; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.6)); }
+    canvas {
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.04);
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      box-shadow: 0 6px 30px rgba(0,0,0,0.7), 0 0 30px rgba(106,0,255,0.06) inset;
+    }
+    .overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: linear-gradient(180deg, rgba(2,3,23,0.75), rgba(7,16,42,0.6));
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .content {
+      background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      padding: 36px 32px; border-radius: 14px;
+      border: 1px solid var(--glass-border);
+      text-align: center; box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 40px rgba(0,255,213,0.04);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      font-family: 'Courier New', monospace; max-width: 520px; color: var(--muted);
+    }
+    h1 { font-size: 3.2rem; color: var(--accent); margin-bottom: 14px; letter-spacing:2px;
+         text-shadow: 0 0 14px rgba(0,255,213,0.18), 0 0 6px rgba(106,0,255,0.06); }
+    h2 { font-size: 2rem; color: #e6f7f0; margin-bottom: 12px; }
+    p { font-size: 1rem; color: rgba(230,247,240,0.9); margin-bottom: 14px; line-height: 1.4; }
+    button {
+      background: transparent; color: var(--accent); border: 1px solid rgba(0,255,213,0.12);
+      padding: 12px 28px; font-size: 1rem; border-radius: 10px; cursor: pointer;
+      font-weight: 700; margin: 8px; min-width: 160px; transition: all 220ms ease;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-4px) scale(1.02);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 18px rgba(0,255,213,0.12);
+    }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .back-btn { background: linear-gradient(90deg, rgba(220,53,69,0.06), rgba(220,53,69,0.03)); color: #ffdddd; border: 1px solid rgba(220,53,69,0.12); }
+    .back-btn:hover { box-shadow: 0 0 20px rgba(220,53,69,0.14); }
+    .mode-btn { font-size: 0.95rem; padding: 10px 18px; width: auto; display: inline-block; border-radius: 8px; }
+    .construction-text { color: #ffb870 !important; font-size: 1rem !important; }
+    input[readonly] { background: rgba(255,255,255,0.02); color: var(--muted); border: 1px solid rgba(255,255,255,0.04); padding:8px; border-radius:6px; }
+    /* small accent underline */
+    .content::after { content:''; display:block; height:2px; width:60px; margin:18px auto 0; background: linear-gradient(90deg,var(--accent),var(--accent-2)); border-radius:2px; }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <canvas id="game" width="750" height="585"></canvas>
+  </div>
+
+  <!-- Menus -->
+  <div id="mainMenu" class="overlay">
+    <div class="content">
+      <h1>Rogar's Pong Game</h1>
+      <p><strong>Multi :</strong> W/S (gauche) | ↑↓ (droite)<br>
+      <strong>Solo :</strong> W/S vs Rogar IA<br>
+      Premier à <strong>11 points</strong> gagne !</p>
+      <button id="multiBtn">Multijoueur</button>
+      <button id="soloBtn">Solo</button>
+      <button id="aideBtn">Aide</button>
+      <button id="settingsBtn">Paramètres</button>
+    </div>
+  </div>
+
+  <div id="multiMenu" class="overlay" style="display:none">
+    <div class="content">
+      <h2>Multijoueur</h2>
+      <p>J1 (gauche) : <strong>W/S</strong> | J2 (droite) : <strong>↑↓</strong></p>
+      <button id="multiClassiqueBtn" class="mode-btn">Classique</button>
+      <button id="multiTurboBtn" class="mode-btn">Turbo</button>
+      <button id="multiFolieBtn" class="mode-btn construction-text">🔴 FOLIE</button>
+      <button id="backToMainMulti" class="back-btn">Retour</button>
+    </div>
+  </div>
+
+  <div id="soloMenu" class="overlay" style="display:none">
+    <div class="content">
+      <h2>Solo vs Rogar</h2>
+      <p>W/S pour ta raquette gauche</p>
+      <button id="easyBtn">Facile</button>
+      <button id="normalBtn">Normal</button>
+      <button id="hardBtn">Dur</button>
+      <button id="impossibleBtn">Impossible 🔥</button>
+      <button id="backToMain" class="back-btn">Retour</button>
+    </div>
+  </div>
+
+  <div id="settingsMenu" class="overlay" style="display:none">
+    <div class="content">
+      <h2>Paramètres</h2>
+      <p>Appuyez sur une case, puis appuyez sur la touche souhaitée pour la définir.</p>
+      <div style="text-align:left; margin: 10px 40px;">
+        <label>Joueur 1 - Haut: <input id="bind_p1_up" type="text" readonly style="width:120px; text-align:center;" /></label><br><br>
+        <label>Joueur 1 - Bas: <input id="bind_p1_down" type="text" readonly style="width:120px; text-align:center;" /></label><br><br>
+        <label>Joueur 2 - Haut: <input id="bind_p2_up" type="text" readonly style="width:120px; text-align:center;" /></label><br><br>
+        <label>Joueur 2 - Bas: <input id="bind_p2_down" type="text" readonly style="width:120px; text-align:center;" /></label><br><br>
+        <label>Pause: <input id="bind_pause" type="text" readonly style="width:120px; text-align:center;" /></label>
+      </div>
+      <div style="margin-top:20px">
+        <button id="saveSettings">Enregistrer</button>
+        <button id="resetSettings" class="back-btn">Réinitialiser</button>
+        <button id="closeSettings" class="back-btn">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="helpScreen" class="overlay" style="display:none">
+    <div class="content">
+      <h2>Commandes</h2>
+      <p><strong>Multijoueur :</strong><br>J1 : <strong>W/S</strong><br>J2 : <strong>↑↓</strong></p>
+      <p><strong>Solo :</strong><br>Toi : <strong>W/S</strong></p>
+      <p><strong>Pause :</strong> <strong>Espace</strong> ou <strong>P</strong></p>
+      <button id="backFromHelp" class="back-btn">Retour</button>
+    </div>
+  </div>
+
+  <div id="pauseScreen" class="overlay" style="display:none">
+    <div class="content">
+      <h2>PAUSE</h2>
+      <button id="resumeBtn">Reprendre</button>
+      <button id="toMainFromPause" class="back-btn">Menu principal</button>
+    </div>
+  </div>
+
+  <div id="winScreen" class="overlay" style="display:none">
+    <div class="content">
+      <h2 id="winnerText">Rogar GAGNE !</h2>
+      <button id="restartGame">Rejouer</button>
+      <button id="mainMenuBtn" class="back-btn">Menu principal</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+
+      const grid = 16;
+      const paddleHeight = grid * 5;
+      const maxPaddleY = canvas.height - grid - paddleHeight;
+      const paddleSpeed = 8;
+      const WIN_SCORE = 11;
+
+      let gameState = 'menu';
+      let gameMode = null;
+      let initialBallSpeed = 5; // valeur par défaut, sera écrasée par startGame
+      let leftScore = 0;
+      let rightScore = 0;
+      let paused = false;
+
+      const leftPaddle = { x: grid * 2, y: canvas.height / 2 - paddleHeight / 2, width: grid, height: paddleHeight, dy: 0 };
+      const rightPaddle = { x: canvas.width - grid * 3, y: canvas.height / 2 - paddleHeight / 2, width: grid, height: paddleHeight, dy: 0 };
+      const ball = { x: canvas.width / 2, y: canvas.height / 2, width: grid, height: grid, resetting: false, dx: 0, dy: 0 };
+      // Folie mode visual particles
+      let folieParticles = [];
+      let folieIntensity = 2.2; // higher => more/stronger particles
+      const FOLIE_MAX_PARTICLES = 420;
+
+      // Big 67 visual
+      let showBig67 = false;
+      let big67EndTime = 0;
+      const BIG67_DURATION = 2200; // ms
+
+      function spawnFolieParticle() {
+        const colorPool = ['#ff3bff', '#00fff0', '#ffd300', '#6a00ff', '#00ffd5', '#ff0055', '#00b3ff'];
+        const lifeBase = 40 + Math.random() * 80;
+        const p = {
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * (1.2 * folieIntensity + Math.random() * folieIntensity),
+          vy: (Math.random() - 0.5) * (1.2 * folieIntensity + Math.random() * folieIntensity),
+          r: (8 + Math.random() * 38) * (0.9 + Math.random() * 0.8 * folieIntensity),
+          life: lifeBase * (0.8 + Math.random() * 0.8),
+          maxLife: lifeBase,
+          color: colorPool[Math.floor(Math.random() * colorPool.length)]
+        };
+        folieParticles.push(p);
+        if (folieParticles.length > FOLIE_MAX_PARTICLES) folieParticles.shift();
+      }
+
+      function hideAllMenus() {
+        document.querySelectorAll('.overlay').forEach(el => el.style.display = 'none');
+      }
+
+      function getWinnerText() {
+        const multi = gameMode && gameMode.startsWith('multi_');
+        return leftScore >= WIN_SCORE ? (multi ? 'Joueur 1 GAGNE !' : 'Tu GAGNE !') : (multi ? 'Joueur 2 GAGNE !' : 'Rogar GAGNE !');
+      }
+
+      function resetGame() {
+        leftScore = rightScore = 0;
+        leftPaddle.y = rightPaddle.y = canvas.height / 2 - paddleHeight / 2;
+        leftPaddle.dy = rightPaddle.dy = 0;
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        ball.dx = initialBallSpeed * (Math.random() > 0.5 ? 1 : -1);
+        ball.dy = (Math.random() - 0.5) * initialBallSpeed * 2;
+        ball.resetting = false;
+        paused = false;
+        hideAllMenus();
+        gameState = 'playing';
+      }
+
+      function startGame(mode, speed) {
+        gameMode = mode;
+        initialBallSpeed = speed;
+        // initialize folie visuals when entering folie mode
+        // reset big67 state whenever a new game starts
+        showBig67 = false;
+        if (gameMode === 'multi_folie') {
+          folieParticles = [];
+          // pre-populate a few
+          for (let i = 0; i < 40; i++) spawnFolieParticle();
+        }
+        resetGame();
+      }
+
+      function update() {
+        if (paused || gameState !== 'playing') return;
+
+        leftPaddle.y += leftPaddle.dy;
+        if (gameMode && gameMode.startsWith('multi_')) rightPaddle.y += rightPaddle.dy;
+        else {
+          const aiSpeed = gameMode === 'easy' ? 0.08 : gameMode === 'normal' ? 0.12 : gameMode === 'hard' ? 0.18 : 0.28;
+          rightPaddle.y += (ball.y - (rightPaddle.y + rightPaddle.height / 2)) * aiSpeed;
+        }
+
+        [leftPaddle, rightPaddle].forEach(p => p.y = Math.max(grid, Math.min(maxPaddleY, p.y)));
+
+        ball.x += ball.dx;
+        ball.y += ball.dy;
+
+        if (ball.y < grid || ball.y + grid > canvas.height - grid) ball.dy *= -1;
+
+        if ((ball.x < 0 || ball.x > canvas.width) && !ball.resetting) {
+          ball.resetting = true;
+          ball.x < 0 ? rightScore++ : leftScore++;
+          // trigger big 67 visual only in folie mode when J1 == 6 and J2 == 7
+          if (gameMode === 'multi_folie' && leftScore === 6 && rightScore === 7) {
+            showBig67 = true; big67EndTime = Date.now() + BIG67_DURATION;
+          }
+          if (leftScore >= WIN_SCORE || rightScore >= WIN_SCORE) {
+            gameState = 'gameover';
+            document.getElementById('winnerText').innerHTML = getWinnerText();
+            document.getElementById('winScreen').style.display = 'flex';
+            return;
+          }
+          setTimeout(() => {
+            ball.resetting = false;
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx = (ball.x < 0 ? 1 : -1) * initialBallSpeed;
+            ball.dy = (Math.random() - 0.5) * initialBallSpeed * 2;
+          }, 600);
+        }
+
+        if (ball.x < leftPaddle.x + leftPaddle.width && ball.x + ball.width > leftPaddle.x &&
+            ball.y < leftPaddle.y + leftPaddle.height && ball.y + ball.height > leftPaddle.y) {
+          ball.dx = Math.abs(ball.dx);
+          ball.x = leftPaddle.x + leftPaddle.width;
+          ball.dy = ((ball.y + ball.height / 2 - (leftPaddle.y + leftPaddle.height / 2)) / (leftPaddle.height / 2)) * 10;
+          if (gameMode === 'multi_turbo') { ball.dx *= 1.06; ball.dy *= 1.06; }
+        } else if (ball.x < rightPaddle.x + rightPaddle.width && ball.x + ball.width > rightPaddle.x &&
+                   ball.y < rightPaddle.y + rightPaddle.height && ball.y + ball.height > rightPaddle.y) {
+          ball.dx = -Math.abs(ball.dx);
+          ball.x = rightPaddle.x - ball.width;
+          ball.dy = ((ball.y + ball.height / 2 - (rightPaddle.y + rightPaddle.height / 2)) / (rightPaddle.height / 2)) * 10;
+          if (gameMode === 'multi_turbo') { ball.dx *= 1.06; ball.dy *= 1.06; }
+        }
+
+        // folie particles update
+        if (gameMode === 'multi_folie') {
+          // spawn several each frame to increase intensity
+          const spawns = 1 + Math.floor(Math.random() * Math.ceil(2.2 * folieIntensity));
+          for (let i = 0; i < spawns; i++) spawnFolieParticle();
+          for (let p of folieParticles) {
+            p.x += p.vx * (0.9 + Math.random() * 1.6);
+            p.y += p.vy * (0.9 + Math.random() * 1.6);
+            p.life -= 1;
+          }
+          folieParticles = folieParticles.filter(p => p.life > 0);
+        }
+
+        // Ensure the ball doesn't exceed a maximum speed in easy mode
+        if (gameMode === 'easy') {
+          const MAX_EASY_SPEED = 4;
+          if (Math.abs(ball.dx) > MAX_EASY_SPEED) ball.dx = Math.sign(ball.dx) * MAX_EASY_SPEED;
+          if (Math.abs(ball.dy) > MAX_EASY_SPEED) ball.dy = Math.sign(ball.dy) * MAX_EASY_SPEED;
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // top and bottom bars (subtle)
+        ctx.fillStyle = '#ccc';
+        ctx.fillRect(0, 0, canvas.width, grid);
+        ctx.fillRect(0, canvas.height - grid, canvas.width, grid);
+
+        // folie visual effects (behind paddles/ball/line) when active
+        if (gameMode === 'multi_folie') {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          for (let p of folieParticles) {
+            const alpha = Math.max(0, p.life / p.maxLife) * 0.6; // brighter
+            const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+            grad.addColorStop(0, hexToRgba(p.color, alpha));
+            grad.addColorStop(0.4, hexToRgba(p.color, alpha * 0.45));
+            grad.addColorStop(1, hexToRgba(p.color, 0));
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        }
+
+        // center dashed line in white
+        ctx.fillStyle = '#fff';
+        for (let i = grid; i < canvas.height - grid; i += grid * 2) {
+          ctx.fillRect(canvas.width / 2 - grid / 4, i, grid / 2, grid);
+        }
+
+        // paddles and ball in white for contrast
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
+        ctx.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
+        ctx.fillRect(ball.x, ball.y, ball.width, ball.height);
+
+        // scores (white for readability on dark theme)
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 45px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText(leftScore, canvas.width / 4, 55);
+        ctx.fillText(rightScore, canvas.width * 3 / 4, 55);
+        // Big 67 overlay (canvas) if active
+        if (showBig67 && Date.now() < big67EndTime) {
+          const remaining = big67EndTime - Date.now();
+          const t = 1 - remaining / BIG67_DURATION; // 0->1
+          const scale = 1 + Math.sin(t * Math.PI) * 0.12;
+          ctx.save();
+          const size = Math.min(canvas.width, canvas.height) * 0.6 * scale;
+          ctx.font = `bold ${Math.floor(size)}px Courier New`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const x = canvas.width / 2;
+          const y = canvas.height / 2;
+          // neon gradient fill and stroke
+          const g = ctx.createLinearGradient(x - size/2, y - size/2, x + size/2, y + size/2);
+          g.addColorStop(0, '#00ffd5');
+          g.addColorStop(0.5, '#ffffff');
+          g.addColorStop(1, '#ff3bff');
+          ctx.fillStyle = g;
+          ctx.shadowColor = 'rgba(255,255,255,0.18)';
+          ctx.shadowBlur = 48 * (0.6 + 0.6 * (1 - remaining / BIG67_DURATION));
+          ctx.fillText('67', x, y);
+          ctx.lineWidth = Math.max(6, size * 0.02);
+          ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+          ctx.strokeText('67', x, y);
+          ctx.restore();
+        } else if (showBig67) {
+          showBig67 = false;
+        }
+      }
+
+      // helper to convert hex like #rrggbb to rgba with given alpha
+      function hexToRgba(hex, a) {
+        if (!hex || hex[0] !== '#') return hex;
+        const v = hex.substring(1);
+        const r = parseInt(v.substring(0,2),16);
+        const g = parseInt(v.substring(2,4),16);
+        const b = parseInt(v.substring(4,6),16);
+        return `rgba(${r},${g},${b},${a})`;
+      }
+
+      function loop() {
+        requestAnimationFrame(loop);
+        if (gameState === 'playing') update();
+        draw();
+      }
+      loop();
+
+
+      // Contrôles clavier
+      // Keybindings support: configurable controls saved in localStorage
+      const STORAGE_KEY = 'rogarsPongControls_v1';
+      const defaultControls = {
+        player1Up: 'w',
+        player1Down: 's',
+        player2Up: 'ArrowUp',
+        player2Down: 'ArrowDown',
+        pause: ' ',
+      };
+      let controls = Object.assign({}, defaultControls);
+
+      function loadControls() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            controls = Object.assign({}, defaultControls, parsed);
+          }
+        } catch (err) { console.warn('Failed to load controls', err); }
+      }
+
+      function saveControls() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(controls)); }
+        catch (err) { console.warn('Failed to save controls', err); }
+      }
+
+      function normKey(k) {
+        if (typeof k !== 'string') return k;
+        return k.length === 1 ? k.toLowerCase() : k;
+      }
+
+      function keyEquals(eKey, binding) {
+        return normKey(eKey) === normKey(binding);
+      }
+
+      // Populate settings UI
+      function showSettingsMenu() {
+        hideAllMenus();
+        document.getElementById('settingsMenu').style.display = 'flex';
+        document.getElementById('bind_p1_up').value = displayKey(controls.player1Up);
+        document.getElementById('bind_p1_down').value = displayKey(controls.player1Down);
+        document.getElementById('bind_p2_up').value = displayKey(controls.player2Up);
+        document.getElementById('bind_p2_down').value = displayKey(controls.player2Down);
+        document.getElementById('bind_pause').value = displayKey(controls.pause);
+      }
+
+      function displayKey(k) { return k === ' ' ? 'Space' : k; }
+
+      function bindSettingsInputs() {
+        ['bind_p1_up','bind_p1_down','bind_p2_up','bind_p2_down','bind_pause'].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.addEventListener('focus', () => { el.value = '...'; });
+          el.addEventListener('keydown', e => {
+            e.preventDefault();
+            const key = e.key;
+            el.value = displayKey(key);
+            switch(id) {
+              case 'bind_p1_up': controls.player1Up = key; break;
+              case 'bind_p1_down': controls.player1Down = key; break;
+              case 'bind_p2_up': controls.player2Up = key; break;
+              case 'bind_p2_down': controls.player2Down = key; break;
+              case 'bind_pause': controls.pause = key; break;
+            }
+          });
+        });
+      }
+
+      function resetControlsToDefault() {
+        controls = Object.assign({}, defaultControls);
+        saveControls();
+        showSettingsMenu();
+      }
+
+      loadControls();
+      bindSettingsInputs();
+
+      document.getElementById('settingsBtn').addEventListener('click', showSettingsMenu);
+      document.getElementById('closeSettings').addEventListener('click', () => { hideAllMenus(); document.getElementById('mainMenu').style.display = 'flex'; });
+      document.getElementById('saveSettings').addEventListener('click', () => { saveControls(); hideAllMenus(); document.getElementById('mainMenu').style.display = 'flex'; });
+      document.getElementById('resetSettings').addEventListener('click', () => { resetControlsToDefault(); });
+
+      document.addEventListener('keydown', e => {
+        if (gameState !== 'playing') return;
+        if (keyEquals(e.key, controls.player1Up)) leftPaddle.dy = -paddleSpeed;
+        if (keyEquals(e.key, controls.player1Down)) leftPaddle.dy = paddleSpeed;
+        if (gameMode && gameMode.startsWith('multi_')) {
+          if (keyEquals(e.key, controls.player2Up)) rightPaddle.dy = -paddleSpeed;
+          if (keyEquals(e.key, controls.player2Down)) rightPaddle.dy = paddleSpeed;
+        }
+        if (keyEquals(e.key, controls.pause) || (typeof controls.pause === 'string' && controls.pause.toLowerCase() === 'p' && e.key.toLowerCase() === 'p')) {
+          paused = !paused;
+          document.getElementById('pauseScreen').style.display = paused ? 'flex' : 'none';
+        }
+      });
+
+      document.addEventListener('keyup', e => {
+        if (gameState !== 'playing') return;
+        if (keyEquals(e.key, controls.player1Up) || keyEquals(e.key, controls.player1Down)) leftPaddle.dy = 0;
+        if (gameMode && gameMode.startsWith('multi_') && (keyEquals(e.key, controls.player2Up) || keyEquals(e.key, controls.player2Down))) rightPaddle.dy = 0;
+      });
+
+      // Boutons
+      document.getElementById('multiBtn').onclick = () => { hideAllMenus(); document.getElementById('multiMenu').style.display = 'flex'; };
+      document.getElementById('soloBtn').onclick = () => { hideAllMenus(); document.getElementById('soloMenu').style.display = 'flex'; };
+      document.getElementById('aideBtn').onclick = () => { hideAllMenus(); document.getElementById('helpScreen').style.display = 'flex'; };
+
+      document.getElementById('multiClassiqueBtn').onclick = () => startGame('multi_classique', 7);
+      document.getElementById('multiTurboBtn').onclick = () => startGame('multi_turbo', 7.2);
+      document.getElementById('multiFolieBtn').onclick = () => startGame('multi_folie', 6);
+      document.getElementById('backToMainMulti').onclick = () => { hideAllMenus(); document.getElementById('mainMenu').style.display = 'flex'; };
+
+      document.getElementById('easyBtn').onclick = () => startGame('easy', 4);          // LENT
+      document.getElementById('normalBtn').onclick = () => startGame('normal', 6);      // Moyen
+      document.getElementById('hardBtn').onclick = () => startGame('hard', 8);          // Rapide
+      document.getElementById('impossibleBtn').onclick = () => startGame('impossible', 10); // Très rapide
+      document.getElementById('backToMain').onclick = () => { hideAllMenus(); document.getElementById('mainMenu').style.display = 'flex'; };
+
+      document.getElementById('backFromHelp').onclick = () => { hideAllMenus(); document.getElementById('mainMenu').style.display = 'flex'; };
+
+      document.getElementById('resumeBtn').onclick = () => { paused = false; document.getElementById('pauseScreen').style.display = 'none'; };
+      document.getElementById('toMainFromPause').onclick = () => { hideAllMenus(); document.getElementById('mainMenu').style.display = 'flex'; gameState = 'menu'; };
+
+      document.getElementById('restartGame').onclick = resetGame;
+      document.getElementById('mainMenuBtn').onclick = () => { hideAllMenus(); document.getElementById('mainMenu').style.display = 'flex'; gameState = 'menu'; };
+    });
+  </script>
+</body>
+</html>
