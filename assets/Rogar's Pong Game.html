@@ -88,7 +88,7 @@
   <!-- Menus -->
   <div id="mainMenu" class="overlay">
     <div class="content">
-      <img id="logo" src="logoRSPG.png" alt="Rogar's Pong Game" />
+      <img id="logo" src="logoR'SPG.png" alt="Rogar's Pong Game" />
       <p><strong>Multi :</strong> W/S (gauche) | ↑↓ (droite)<br>
       <strong>Solo :</strong> W/S vs Rogar IA<br>
       Premier à <strong>11 points</strong> gagne !</p>
@@ -230,8 +230,8 @@
         leftPaddle.dy = rightPaddle.dy = 0;
         ball.x = canvas.width / 2;
         ball.y = canvas.height / 2;
-        ball.dx = initialBallSpeed * (Math.random() > 0.5 ? 1 : -1);
-        ball.dy = (Math.random() - 0.5) * initialBallSpeed * 2;
+        ball.dx = 4 * (Math.random() > 0.5 ? 1 : -1); // start at speed 4
+        ball.dy = (Math.random() - 0.5) * 8;
         ball.resetting = false;
         paused = false;
         hideAllMenus();
@@ -286,8 +286,8 @@
             ball.resetting = false;
             ball.x = canvas.width / 2;
             ball.y = canvas.height / 2;
-            ball.dx = (ball.x < 0 ? 1 : -1) * initialBallSpeed;
-            ball.dy = (Math.random() - 0.5) * initialBallSpeed * 2;
+            ball.dx = 4 * (ball.x < 0 ? 1 : -1); // restart at speed 4 after each point
+            ball.dy = (Math.random() - 0.5) * 8;
           }, 600);
         }
 
@@ -547,4 +547,3 @@
   </script>
 </body>
 </html>
-
