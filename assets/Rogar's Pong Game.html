@@ -318,12 +318,29 @@
           folieParticles = folieParticles.filter(p => p.life > 0);
         }
 
-        // Ensure the ball doesn't exceed a maximum speed in easy mode
-        if (gameMode === 'easy') {
-          const MAX_EASY_SPEED = 4;
-          if (Math.abs(ball.dx) > MAX_EASY_SPEED) ball.dx = Math.sign(ball.dx) * MAX_EASY_SPEED;
-          if (Math.abs(ball.dy) > MAX_EASY_SPEED) ball.dy = Math.sign(ball.dy) * MAX_EASY_SPEED;
-        }
+        // Limite de vitesse pour tous les modes solo
+if (gameMode === 'easy') {
+  const MAX_SPEED = 4;
+  if (Math.abs(ball.dx) > MAX_SPEED) ball.dx = Math.sign(ball.dx) * MAX_SPEED;
+  if (Math.abs(ball.dy) > MAX_SPEED) ball.dy = Math.sign(ball.dy) * MAX_SPEED;
+} else if (gameMode === 'normal') {
+  const MAX_SPEED = 6;
+  if (Math.abs(ball.dx) > MAX_SPEED) ball.dx = Math.sign(ball.dx) * MAX_SPEED;
+  if (Math.abs(ball.dy) > MAX_SPEED) ball.dy = Math.sign(ball.dy) * MAX_SPEED;
+} else if (gameMode === 'hard') {
+  const MAX_SPEED = 8;
+  if (Math.abs(ball.dx) > MAX_SPEED) ball.dx = Math.sign(ball.dx) * MAX_SPEED;
+  if (Math.abs(ball.dy) > MAX_SPEED) ball.dy = Math.sign(ball.dy) * MAX_SPEED;
+} else if (gameMode === 'impossible') {
+  const MAX_SPEED = 10;
+  if (Math.abs(ball.dx) > MAX_SPEED) ball.dx = Math.sign(ball.dx) * MAX_SPEED;
+  if (Math.abs(ball.dy) > MAX_SPEED) ball.dy = Math.sign(ball.dy) * MAX_SPEED;
+}
+        
+          
+          
+          
+          
       }
 
       function draw() {
@@ -547,4 +564,5 @@
   </script>
 </body>
 </html>
+
 
